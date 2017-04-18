@@ -3,7 +3,7 @@
 
     <!-- Strings related to login -->
     <string name="prompt_email">Email</string>
-    <string name="prompt_password">Password (optional)</string>
+    <string name="prompt_password">Password</string>
     <string name="action_sign_in">Sign in or register</string>
     <string name="action_sign_in_short">Sign in</string>
     <string name="error_invalid_email">This email address is invalid</string>
@@ -13,4 +13,29 @@
     <string name="permission_rationale">"Contacts permissions are needed for providing email
         completions."
     </string>
+    <string name="welcome_message">Welcome</string>
+    <string name="login_message">To use Andrea\'s Herbs you need to log in first</string>
+    <string name="email_hint">Email Address</string>
+    <string name="password_hint">Password</string>
+    <string name="login_button">Login</string>
+    <string name="auth_failed">Authentication failed</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="sign_up_message">So glad you could join us</string>
+    <string name="please_fill_in_your_information_below_this_information_won_t_be_shared_with_anybody_we_value_your_privacy">Please fill in your information below. This information won\'t be shared with anybody. We value your privacy</string>
+    <string name="email_prompt">Please provide an email address</string>
+    <string name="password_prompt">Please provide a password</string>
+    <string name="password_confirm_prompt">Please confirm your password</string>
+    <string name="signup_button_text">Create your account</string>
+    <string name="forgot_password">Forgot Password</string>
+    <string name="separator"> | </string>
+    <string name="sign_up_text">Sign Up</string>
+    <string name="confirm_your_password">Confirm your password</string>
+    <string name="password_reset_instructions">Enter your email address below and an email will be sent to you with instructions on how to reset your password.</string>
+    <string name="password_reset">Password Reset</string>
+    <string name="reset_button">Send reset email</string>
+    <string name="logo_description">Andrea\'s Herbs Logo</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
 </resources>
