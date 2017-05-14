@@ -1,5 +1,7 @@
 apply plugin: 'com.android.application'
 
+def MIGRATION_SECRET_KEY = '"' + MigrationSecretKey + '"' ?: "Define migration key"
+
 android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
@@ -11,6 +13,9 @@ android {
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+        each { type ->
+            type.buildConfigField 'String', 'MigrationSecretKey', MIGRATION_SECRET_KEY
+        }
     }
     buildTypes {
         release {
