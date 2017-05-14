@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.os.Bundle;
+import android.support.compat.*;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -190,7 +191,8 @@ public class LoginActivity extends AccountHelper {
     }
 
     private void migratedLogin(final String email, final String password) {
-        super.mAuth.signInWithEmailAndPassword(email, md5(email + "Secret"))
+        String secretKey = BuildConfig.MigrationSecretKey;
+        super.mAuth.signInWithEmailAndPassword(email, md5(email + secretKey))
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
