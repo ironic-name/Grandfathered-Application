@@ -14,7 +14,7 @@
         completions."
     </string>
     <string name="welcome_message">Welcome</string>
-    <string name="login_message">To use Andrea\'s Herbs you need to log in first</string>
+    <string name="login_message">To use Grandfathered you need to log in first</string>
     <string name="email_hint">Email Address</string>
     <string name="password_hint">Password</string>
     <string name="login_button">Login</string>
@@ -33,7 +33,7 @@
     <string name="password_reset_instructions">Enter your email address below and an email will be sent to you with instructions on how to reset your password.</string>
     <string name="password_reset">Password Reset</string>
     <string name="reset_button">Send reset email</string>
-    <string name="logo_description">Andrea\'s Herbs Logo</string>
+    <string name="logo_description">Grandfathered Logo</string>
     <string name="title_activity_main">MainActivity</string>
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
