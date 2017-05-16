@@ -1,21 +1,17 @@
 package com.example.nickvanniekerk.grandfathered;
 
-import android.content.Context;
 import android.content.Intent;
-import android.support.annotation.NonNull;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.compat.*;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -24,6 +20,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
+
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -36,7 +34,9 @@ public class LoginActivity extends AccountHelper {
     private EditText txtPassword;
     private TextView txtForgotPassword;
     private TextView txtSignUp;
+    private ProgressBar loadingProgressBar;
     private static final String TAG = "LoginActivity";
+    DatabaseReference ref;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +56,11 @@ public class LoginActivity extends AccountHelper {
         txtForgotPassword = (TextView) findViewById(R.id.txtForgotPassword);
         txtSignUp = (TextView) findViewById(R.id.txtSignUp);
 
+        loadingProgressBar = (ProgressBar) findViewById(R.id.loadingProgress);
+        loadingProgressBar.setVisibility(View.GONE);
+
+        ref = FirebaseDatabase.getInstance().getReference();
+
         addListeners();
     }
 
@@ -63,38 +68,15 @@ public class LoginActivity extends AccountHelper {
      * Set action listeners on appropriate UI elements
      */
     private void addListeners() {
-        btnLogin.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                btnLoginClicked();
-            }
-        });
-
-        txtForgotPassword.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                forgotPasswordClicked();
-            }
-        });
-
-        txtSignUp.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                signUpClicked();
-            }
-        });
+        btnLogin.setOnClickListener(view -> btnLoginClicked());
+        txtForgotPassword.setOnClickListener(view -> forgotPasswordClicked());
+        txtSignUp.setOnClickListener(view -> signUpClicked());
     }
 
     /**
      * Navigate to the sign up activity
      */
     private void signUpClicked() {
-        InputMethodManager inputManager = (InputMethodManager)
-                getSystemService(Context.INPUT_METHOD_SERVICE);
-
-        inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
-                InputMethodManager.HIDE_NOT_ALWAYS);
-
         startActivity(new Intent(this, SignupActivity.class));
     }
 
@@ -102,12 +84,6 @@ public class LoginActivity extends AccountHelper {
      * Navigate to the forgot password activity
      */
     private void forgotPasswordClicked() {
-        InputMethodManager inputManager = (InputMethodManager)
-                getSystemService(Context.INPUT_METHOD_SERVICE);
-
-        inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
-                InputMethodManager.HIDE_NOT_ALWAYS);
-
         startActivity(new Intent(this, PasswordResetActivity.class));
     }
 
@@ -115,38 +91,41 @@ public class LoginActivity extends AccountHelper {
      * Attempt to log in a user
      */
     private void btnLoginClicked() {
-        InputMethodManager inputManager = (InputMethodManager)
-                getSystemService(Context.INPUT_METHOD_SERVICE);
-
-        inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
-                InputMethodManager.HIDE_NOT_ALWAYS);
         if (validateLoginRequirements()) {
-            signInWithEmailAndPassword(txtEmail.getText().toString().trim(), txtPassword.getText().toString().trim());
+            loadingProgressBar.setIndeterminate(true);
+            loadingProgressBar.setVisibility(View.VISIBLE);
+            signInWithEmailAndPassword(
+                    txtEmail.getText().toString().trim(),
+                    txtPassword.getText().toString().trim()
+            );
         }
     }
 
+    /**
+     * @param email Email of user attempting to login
+     * @param password Provided password
+     */
     public void signInWithEmailAndPassword(final String email, final String password) {
         super.mAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        Log.d(TAG, "signInWithEmail:onComplete:" + task.isSuccessful());
+                .addOnCompleteListener(this, task -> {
+                    Log.d(TAG, "signInWithEmail:onComplete:" + task.isSuccessful());
 
-                        // If sign in fails, display a message to the user. If sign in succeeds
-                        // the auth state listener will be notified and logic to handle the
-                        // signed in user can be handled in the listener.
-                        if (!task.isSuccessful()) {
-                            Log.w(TAG, "signInWithEmail:failed", task.getException());
-                            tryLoginMigratedUser(email, password);
-                        } else {
-                            openMain();
-                        }
+                    if (!task.isSuccessful()) {
+                        Log.w(TAG, "signInWithEmail:failed", task.getException());
+                        tryLoginMigratedUser(email, password);
+                    } else {
+                        loadingProgressBar.setVisibility(View.GONE);
+                        openMain();
                     }
                 });
     }
 
+    /**
+     * @param s String to be hashed
+     * @return Hashed version of the string in a MD5 Hex String
+     */
     @NonNull
-    private static final String md5(final String s) {
+    private static String md5(final String s) {
         final String MD5 = "MD5";
         try {
             // Create MD5 Hash
@@ -171,71 +150,107 @@ public class LoginActivity extends AccountHelper {
         return "";
     }
 
+    /**
+     * Method to attempt to log in a user as a migrated user. If the user is not in the list of
+     * migrated users, the method will not log the user in.
+     * @param email Email of the user attempting to log in
+     * @param password Provided password
+     */
     private void tryLoginMigratedUser(final String email, final String password) {
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference();
+        // Get email addresses of migrated users
         Query emailExists = ref.child("migrated_users").orderByChild("email").equalTo(email);
 
-        emailExists.addValueEventListener( new ValueEventListener(){
+        // TODO test single event listener
+        emailExists.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.getValue() != null) {
                     migratedLogin(email, password);
                 } else {
-                    Toast.makeText(LoginActivity.this, "Authentication failed.", Toast.LENGTH_SHORT).show();
+                    loadingProgressBar.setVisibility(View.GONE);
+                    Toast.makeText(
+                            LoginActivity.this,
+                            "Authentication failed.",
+                            Toast.LENGTH_SHORT
+                    ).show();
                 }
             }
 
             @Override
-            public void onCancelled(DatabaseError databaseError) {}
+            public void onCancelled(DatabaseError databaseError) {
+            }
         });
     }
 
+    // TODO investigate multiple firing issue
     private void migratedLogin(final String email, final String password) {
         String secretKey = BuildConfig.MigrationSecretKey;
         super.mAuth.signInWithEmailAndPassword(email, md5(email + secretKey))
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        Log.d(TAG, "signInWithEmail:onComplete:" + task.isSuccessful());
+                .addOnCompleteListener(this, task -> {
+                    Log.d(TAG, "signInWithEmail:onComplete:" + task.isSuccessful());
 
-                        // If sign in fails, display a message to the user. If sign in succeeds
-                        // the auth state listener will be notified and logic to handle the
-                        // signed in user can be handled in the listener.
-                        if (!task.isSuccessful()) {
-                            Log.w(TAG, "signInWithEmail:failed", task.getException());
-                            Toast.makeText(LoginActivity.this, "Authentication failed.", Toast.LENGTH_SHORT).show();
-                        } else {
-                            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                            if (user != null) {
-                                user.updatePassword(password).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<Void> task) {
-                                        DatabaseReference ref = FirebaseDatabase.getInstance().getReference();
-                                        ref.child("migrated_users").orderByChild("email").equalTo(email).addListenerForSingleValueEvent(
-                                                new ValueEventListener() {
-                                                    @Override
-                                                    public void onDataChange(DataSnapshot dataSnapshot) {
-                                                        dataSnapshot.getRef().setValue(null);
-                                                        openMain();
-                                                    }
+                    // If sign in fails, display a message to the user. If sign in succeeds
+                    // the auth state listener will be notified and logic to handle the
+                    // signed in user can be handled in the listener.
+                    if (!task.isSuccessful()) {
+                        loadingProgressBar.setVisibility(View.GONE);
+                        Log.w(TAG, "signInWithEmail:failed", task.getException());
+                        Toast.makeText(
+                                LoginActivity.this,
+                                "Authentication failed.",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    } else {
+                        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                        if (user != null) {
+                            // Compare BCrypt passwords and if successful update password
+                            ref.child("users").child(user.getUid()).child("bcryptPassword").addListenerForSingleValueEvent(
+                                    new ValueEventListener() {
+                                        @Override
+                                        public void onDataChange(DataSnapshot dataSnapshot) {
 
-                                                    @Override
-                                                    public void onCancelled(DatabaseError databaseError) {
-                                                        Log.w(TAG, "signInWithEmail:failed", databaseError.toException());
-                                                    }
-                                                });
-                                    }
-                                });
-                            }
+                                            if (BCrypt.checkpw(password, dataSnapshot.getValue().toString())) {
+                                                AsyncTask.execute(() -> user.updatePassword(password).addOnCompleteListener(task1 ->
+                                                        ref.child("migrated_users").orderByChild("email").equalTo(email).addListenerForSingleValueEvent(
+                                                                new ValueEventListener() {
+                                                                    @Override
+                                                                    public void onDataChange(DataSnapshot dataSnapshot1) {
+                                                                        // Remove email address of migrated user from migrated users
+                                                                        dataSnapshot1.getRef().setValue(null);
+                                                                    }
+
+                                                                    @Override
+                                                                    public void onCancelled(DatabaseError databaseError) {
+                                                                        Log.w(TAG, "signInWithEmail:failed", databaseError.toException());
+                                                                    }
+                                                                })));
+
+                                                loadingProgressBar.setVisibility(View.GONE);
+                                                openMain();
+                                            } else {
+                                                // Display error stating that an invalid password was used, and clear text field.
+                                                Toast.makeText(LoginActivity.this, "Incorrect email or password. Please try again.", Toast.LENGTH_LONG).show();
+                                            }
+                                        }
+
+                                        @Override
+                                        public void onCancelled(DatabaseError databaseError) {
+
+                                        }
+                                    });
                         }
                     }
                 });
     }
 
+    /**
+     * Open main screen after successful login
+     */
     private void openMain() {
         Toast.makeText(LoginActivity.this, "Successfully logged in.", Toast.LENGTH_SHORT).show();
         startActivity(new Intent(LoginActivity.this, MainActivity.class));
     }
+
     /**
      * @return validity of provided information
      */
@@ -246,11 +261,19 @@ public class LoginActivity extends AccountHelper {
             if (isValidEmail(txtEmail.getText().toString().trim())) {
                 valid = true;
             } else {
-                Toast.makeText(this, "Invalid email address, please try again.", Toast.LENGTH_LONG).show();
+                Toast.makeText(
+                        this,
+                        "Invalid email address, please try again.",
+                        Toast.LENGTH_LONG
+                ).show();
                 clearEditText(txtEmail);
             }
         } else {
-            Toast.makeText(this, "Please make sure you fill in all the fields.", Toast.LENGTH_LONG).show();
+            Toast.makeText(
+                    this,
+                    "Please make sure you fill in all the fields.",
+                    Toast.LENGTH_LONG
+            ).show();
         }
         return valid;
     }
@@ -267,11 +290,11 @@ public class LoginActivity extends AccountHelper {
      * @return validity of email address
      */
     public static boolean isValidEmail(CharSequence target) {
-        return Pattern.compile("^(([\\w-]+\\.)+[\\w-]+|([a-zA-Z]{1}|[\\w-]{2,}))@"
+        return Pattern.compile("^(([\\w-]+\\.)+[\\w-]+|([a-zA-Z]|[\\w-]{2,}))@"
                 + "((([0-1]?[0-9]{1,2}|25[0-5]|2[0-4][0-9])\\.([0-1]?"
                 + "[0-9]{1,2}|25[0-5]|2[0-4][0-9])\\."
                 + "([0-1]?[0-9]{1,2}|25[0-5]|2[0-4][0-9])\\.([0-1]?"
-                + "[0-9]{1,2}|25[0-5]|2[0-4][0-9])){1}|"
+                + "[0-9]{1,2}|25[0-5]|2[0-4][0-9]))|"
                 + "([a-zA-Z]+[\\w-]+\\.)+[a-zA-Z]{2,4})$").matcher(target).matches();
     }
 }
