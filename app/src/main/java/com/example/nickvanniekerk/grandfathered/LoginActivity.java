@@ -1,6 +1,7 @@
 package com.example.nickvanniekerk.grandfathered;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -93,7 +94,7 @@ public class LoginActivity extends AccountHelper {
     private void btnLoginClicked() {
         if (validateLoginRequirements()) {
             loadingProgressBar.setIndeterminate(true);
-            loadingProgressBar.setVisibility(View.VISIBLE);
+            startLoader();
             signInWithEmailAndPassword(
                     txtEmail.getText().toString().trim(),
                     txtPassword.getText().toString().trim()
@@ -112,9 +113,10 @@ public class LoginActivity extends AccountHelper {
 
                     if (!task.isSuccessful()) {
                         Log.w(TAG, "signInWithEmail:failed", task.getException());
+//                        tryLoginMigratedUser(email, password);
                         tryLoginMigratedUser(email, password);
                     } else {
-                        loadingProgressBar.setVisibility(View.GONE);
+                        invalidateLoader();
                         openMain();
                     }
                 });
@@ -157,17 +159,17 @@ public class LoginActivity extends AccountHelper {
      * @param password Provided password
      */
     private void tryLoginMigratedUser(final String email, final String password) {
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference();
         // Get email addresses of migrated users
         Query emailExists = ref.child("migrated_users").orderByChild("email").equalTo(email);
 
-        // TODO test single event listener
-        emailExists.addListenerForSingleValueEvent(new ValueEventListener() {
+        emailExists.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.getValue() != null) {
                     migratedLogin(email, password);
                 } else {
-                    loadingProgressBar.setVisibility(View.GONE);
+                    invalidateLoader();
                     Toast.makeText(
                             LoginActivity.this,
                             "Authentication failed.",
@@ -193,7 +195,7 @@ public class LoginActivity extends AccountHelper {
                     // the auth state listener will be notified and logic to handle the
                     // signed in user can be handled in the listener.
                     if (!task.isSuccessful()) {
-                        loadingProgressBar.setVisibility(View.GONE);
+                        invalidateLoader();
                         Log.w(TAG, "signInWithEmail:failed", task.getException());
                         Toast.makeText(
                                 LoginActivity.this,
@@ -225,11 +227,12 @@ public class LoginActivity extends AccountHelper {
                                                                     }
                                                                 })));
 
-                                                loadingProgressBar.setVisibility(View.GONE);
+                                                invalidateLoader();
                                                 openMain();
                                             } else {
                                                 // Display error stating that an invalid password was used, and clear text field.
                                                 Toast.makeText(LoginActivity.this, "Incorrect email or password. Please try again.", Toast.LENGTH_LONG).show();
+                                                invalidateLoader();
                                             }
                                         }
 
@@ -296,5 +299,21 @@ public class LoginActivity extends AccountHelper {
                 + "([0-1]?[0-9]{1,2}|25[0-5]|2[0-4][0-9])\\.([0-1]?"
                 + "[0-9]{1,2}|25[0-5]|2[0-4][0-9]))|"
                 + "([a-zA-Z]+[\\w-]+\\.)+[a-zA-Z]{2,4})$").matcher(target).matches();
+    }
+
+    private void startLoader() {
+        loadingProgressBar.setVisibility(View.VISIBLE);
+        txtEmail.setEnabled(false);
+        txtPassword.setEnabled(false);
+        txtEmail.setTextColor(Color.GRAY);
+        txtPassword.setTextColor(Color.GRAY);
+    }
+
+    private void invalidateLoader() {
+        loadingProgressBar.setVisibility(View.GONE);
+        txtEmail.setEnabled(true);
+        txtPassword.setEnabled(true);
+        txtEmail.setTextColor(Color.BLACK);
+        txtPassword.setTextColor(Color.BLACK);
     }
 }

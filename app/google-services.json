@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "559352928289",
+    "firebase_url": "https://grandfathered-98eff.firebaseio.com",
+    "project_id": "grandfathered-98eff",
+    "storage_bucket": "grandfathered-98eff.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:559352928289:android:358e082ebe3c6bee",
+        "android_client_info": {
+          "package_name": "com.example.nickvanniekerk.grandfathered"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "559352928289-51odv64si0rtv7p1h7fe212hr0l0qo8n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.nickvanniekerk.grandfathered",
+            "certificate_hash": "c5670bc7eec9fc974b0ecb0e0a2d6542c4d9a7bb"
+          }
+        },
+        {
+          "client_id": "559352928289-tdgh3n8q2ul5bgdov9dh3squorhgg72n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAH9shH3Zg50jrgGrnPpfsTQPgabThEnVo"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "559352928289-tdgh3n8q2ul5bgdov9dh3squorhgg72n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

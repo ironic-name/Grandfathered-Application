@@ -13,10 +13,6 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-/**
- * Created by nickvanniekerk on 2017/04/08.
- */
-
 public class AccountHelper extends AppCompatActivity {
     public FirebaseAuth mAuth;
     public FirebaseAuth.AuthStateListener mAuthListener;
